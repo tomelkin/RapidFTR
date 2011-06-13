@@ -130,18 +130,18 @@ class Child < CouchRestRails::Document
   end
 
   def rotate_photo(angle)
-    existing_photo = primary_photo               
+    existing_photo = primary_photo
     image = MiniMagick::Image.from_blob(existing_photo.data.read)
     image.rotate(angle)
-                                        
+
     attachment = FileAttachment.new(existing_photo.name, existing_photo.content_type, image.to_blob)
     # attachment = FileAttachment.from_uploadable_file(image.to_blob, "photo-#{existing_photo.name.hash}")
-    
+
     self['photo_keys'].delete(attachment.name)
     @photo_keys = [attachment.name]
     delete_attachment(existing_photo.name) 
-    attach(attachment)  
-  end                                                                 
+    attach(attachment)
+  end
   
   def delete_photo(delete_photos)
     return unless delete_photos
