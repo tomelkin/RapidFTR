@@ -20,6 +20,17 @@ $(function() {
       });
     },
 
+    delete: function() {
+      $.ajax({
+        url: this.get("photo_url"),
+        success: function() {
+          alert("Deleted!");
+          this.view.remove();
+        },
+        type: "DELETE"
+      });
+    },
+
     select: function() {
       if (this.isSelected()) {
         this.unselect();
@@ -108,6 +119,13 @@ $(function() {
         var selectedPhoto = Photos.getSelectedPhoto();
         if (selectedPhoto) {
           selectedPhoto.makePrimaryPhoto();
+        }
+      });
+
+      $("#deletePhotoButton").click(function() {
+        var selectedPhoto = Photos.getSelectedPhoto();
+        if (selectedPhoto) {
+          selectedPhoto.delete();
         }
       });
     },

@@ -31,8 +31,13 @@ describe ChildMediaController do
     it "should have a route for a child current thumbnail" do
       {:get => '/children/1/thumbnail'}.should route_to(:controller => "child_media", :action => "show_thumbnail", :child_id => "1")
     end
+
     it "should have a route for a child specific thumbnail" do
       { :get => "/children/c1/thumbnail/t1" }.should route_to(:controller => "child_media", :action => "show_thumbnail", :child_id => "c1", :id => "t1")
+    end
+
+    it "should have a route for deleting a specific photo" do
+      { :delete => "/children/c1/photo/p1" }.should route_to(:controller => "child_media", :action => "delete_photo", :child_id => "c1", :id => "p1")
     end
   end
 
@@ -46,7 +51,7 @@ describe ChildMediaController do
 
       response.should represent_inline_attachment(uploadable_photo)
     end
-    
+
     it "should return requested child's photo" do
       given_a_child.
               with_id("1")
@@ -121,6 +126,18 @@ describe ChildMediaController do
 
       get :download_audio, :child_id => '1'
       response.should represent_attachment(uploadable_audio_mp3, "audio_child123.mp3")
+    end
+  end
+
+  describe "delete photo" do
+    it "should delete the photo from the child record" do
+      given_a_child.with_id("1")
+
+      @child.should_receive(:delete_photo).with("photo-to-delete")
+
+      delete :delete_photo, :child_id => "1", :id => "photo-to-delete"
+
+      response.should be_success
     end
   end
 end

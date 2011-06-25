@@ -11,6 +11,11 @@ class ChildMediaController < ApplicationController
     send_data(@attachment.data.read, :type => @attachment.content_type, :disposition => 'inline')
   end
 
+  def delete_photo
+    @child.delete_photo(params[:id])
+    head :ok
+  end
+
   def show_resized_photo
     new_size = params[:size]
     photo_data = @attachment.data.read
