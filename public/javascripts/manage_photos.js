@@ -20,17 +20,6 @@ $(function() {
       });
     },
 
-    delete: function() {
-      $.ajax({
-        url: this.get("photo_url"),
-        success: function() {
-          alert("Deleted!");
-          this.view.remove();
-        },
-        type: "DELETE"
-      });
-    },
-
     select: function() {
       if (this.isSelected()) {
         this.unselect();
@@ -49,6 +38,10 @@ $(function() {
     isSelected: function() {
       return this.selected == true;
     },
+
+    url: function() {
+      return this.get("photo_url");
+    }
   });
 
   window.PhotoList = Backbone.Collection.extend({
@@ -76,7 +69,11 @@ $(function() {
     template: _.template($('#photo-template').html()),
 
     initialize: function() {
+      var self = this;
       this.model.bind('change', this.render);
+      this.model.bind('remove', function() {
+          self.remove();
+      });
       this.model.view = this;
     },
 
@@ -125,7 +122,8 @@ $(function() {
       $("#deletePhotoButton").click(function() {
         var selectedPhoto = Photos.getSelectedPhoto();
         if (selectedPhoto) {
-          selectedPhoto.delete();
+          selectedPhoto.destroy();
+          Photos.remove(selectedPhoto);
         }
       });
     },
