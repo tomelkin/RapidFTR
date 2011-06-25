@@ -26,13 +26,13 @@ $(function() {
       } else {
         Photos.unselectAll();
         this.selected = true;
-        this.view.select();
+        this.trigger('select');
       }
     },
 
     unselect: function() {
       this.selected = false;
-      this.view.unselect();
+      this.trigger('unselect');
     },
 
     isSelected: function() {
@@ -69,12 +69,11 @@ $(function() {
     template: _.template($('#photo-template').html()),
 
     initialize: function() {
-      var self = this;
+      _.bindAll(this, 'remove', 'select', 'unselect');
       this.model.bind('change', this.render);
-      this.model.bind('remove', function() {
-          self.remove();
-      });
-      this.model.view = this;
+      this.model.bind('remove', this.remove);
+      this.model.bind('select', this.select);
+      this.model.bind('unselect', this.unselect);
     },
 
     events: {
