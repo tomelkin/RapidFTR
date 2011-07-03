@@ -7,7 +7,7 @@ class Child < CouchRestRails::Document
   Sunspot::Adapters::InstanceAdapter.register(DocumentInstanceAccessor, Child)
 
   before_save :initialize_history, :if => :new?
-  before_save :update_photo_keys
+  # before_save :update_photo_keys
   before_save :update_history, :unless => :new?
 
   property :age
@@ -139,10 +139,10 @@ class Child < CouchRestRails::Document
 
     self['photo_keys'].delete(attachment.name)
     @photo_keys = [attachment.name]
-    delete_attachment(existing_photo.name) 
+    delete_attachment(existing_photo.name)
     attach(attachment)
   end
-  
+
   def delete_photos(delete_photos)
     return unless delete_photos
     delete_photos.keys.collect do |photo_key_to_delete|
@@ -152,10 +152,13 @@ class Child < CouchRestRails::Document
 
   def delete_photo(photo_key_to_delete)
     self['photo_keys'].delete(photo_key_to_delete)
+    @photo_keys.delete(photo_key_to_delete)
+    if photo_key_to_delete == self['current_photo_key']
+      self['current_photo_key'] = self['photo_keys'].first
+    end
     save
   end
 
-  
   def photo=(new_photos)
     return unless new_photos
     #basically to support any client passing a single photo param, only used by child_spec AFAIK
@@ -170,6 +173,8 @@ class Child < CouchRestRails::Document
       attach(attachment)
       attachment.name
     end
+    self['photo_keys'].concat(@photo_keys).uniq!
+    self['current_photo_key'] ||= @photo_keys.first
   end
 
   def photos
@@ -188,7 +193,7 @@ class Child < CouchRestRails::Document
       }
     end
   end
-  
+
   def primary_photo
     key = self['current_photo_key']
     key ? attachment(key) : nil
@@ -299,7 +304,7 @@ class Child < CouchRestRails::Document
        self[field_name] != @from_child[field_name]
     end
   end
-  
+
   def is_filled_in? field
     !(self[field.name].nil? || self[field.name] == field.default_value)
   end
@@ -308,26 +313,26 @@ class Child < CouchRestRails::Document
   def attachment(key)
     data = read_attachment key
     content_type = self['_attachments'][key]['content_type']
-    FileAttachment.new key, content_type, data      
+    FileAttachment.new key, content_type, data
   end
-  
+
   def update_photo_keys
     @photo_keys ||= []
     self['photo_keys'] ||= []
     self['photo_keys'].concat(@photo_keys).uniq!
     self['current_photo_key'] ||= @photo_keys.first || self['photo_keys'].first
   end
-  
+
   def attach(attachment)
     create_attachment :name => attachment.name,
                       :content_type => attachment.content_type,
-                      :file => attachment.data  
-  end  
-  
+                      :file => attachment.data
+  end
+
   def deprecated_fields
     system_fields = ["created_at","posted_at", "posted_from", "_rev", "_id", "created_by", "couchrest-type", "histories", "unique_identifier"]
     existing_fields = system_fields + FormSection.all_enabled_child_fields.map {|x| x.name}
-    self.reject {|k,v| existing_fields.include? k} 
+    self.reject {|k,v| existing_fields.include? k}
   end
 
   def setup_original_audio(attachment)
@@ -345,5 +350,5 @@ class Child < CouchRestRails::Document
   def key_for_content_type(content_type)
     Mime::Type.lookup(content_type).to_sym.to_s
   end
-  
+
 end

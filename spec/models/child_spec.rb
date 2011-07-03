@@ -1,4 +1,4 @@
-require 'spec_helper'
+require File.dirname(__FILE__)+'/../spec_helper'
 
 
 describe Child do
@@ -6,22 +6,22 @@ describe Child do
     before :each do
       Sunspot.remove_all(Child)
     end
-    
+
     before :all do
       form = FormSection.new(:name => "test_form")
       form.fields << Field.new(:name => "name", :type => Field::TEXT_FIELD, :display_name => "name")
       form.save!
     end
-    
+
     after :all do
       FormSection.all.each{ |form| form.destroy }
     end
-    
+
     it "should return empty array if search is not valid" do
       search = mock("search", :query => "", :valid? => false)
-      Child.search(search).should == []      
+      Child.search(search).should == []
     end
-    
+
     it "should return empty array for no match" do
       search = mock("search", :query => "Nothing", :valid? => true)
       Child.search(search).should == []
@@ -32,45 +32,45 @@ describe Child do
       search = mock("search", :query => "Exact", :valid? => true)
       Child.search(search).map(&:name).should == ["Exact"]
     end
-  
+
     it "should return a match that starts with the query" do
       create_child("Starts With")
-      search = mock("search", :query => "Star", :valid? => true)      
+      search = mock("search", :query => "Star", :valid? => true)
       Child.search(search).map(&:name).should == ["Starts With"]
     end
-    
+
     it "should return a fuzzy match" do
       create_child("timithy")
       create_child("timothy")
-      search = mock("search", :query => "timothy", :valid? => true)      
+      search = mock("search", :query => "timothy", :valid? => true)
       Child.search(search).map(&:name).should =~ ["timithy", "timothy"]
     end
-    
+
     it "should search by exact match for unique id" do
       uuid = UUIDTools::UUID.random_create.to_s
       Child.create("name" => "kev", :unique_identifier => uuid, "last_known_location" => "new york")
       Child.create("name" => "kev", :unique_identifier => UUIDTools::UUID.random_create, "last_known_location" => "new york")
-      search = mock("search", :query => uuid, :valid? => true)      
+      search = mock("search", :query => uuid, :valid? => true)
       results = Child.search(search)
       results.length.should == 1
       results.first[:unique_identifier].should == uuid
     end
-    
+
     it "should match more than one word" do
       create_child("timothy cochran") 
-      search = mock("search", :query => "timothy cochran", :valid? => true)           
+      search = mock("search", :query => "timothy cochran", :valid? => true)
       Child.search(search).map(&:name).should =~ ["timothy cochran"]
     end
-    
+
     it "should match more than one word with fuzzy search" do
-      create_child("timothy cochran")      
-      search = mock("search", :query => "timithy cichran", :valid? => true)           
+      create_child("timothy cochran")
+      search = mock("search", :query => "timithy cichran", :valid? => true)
       Child.search(search).map(&:name).should =~ ["timothy cochran"]
     end
-    
+
     it "should match more than one word with starts with" do
       create_child("timothy cochran")
-      search = mock("search", :query => "timo coch", :valid? => true)                 
+      search = mock("search", :query => "timo coch", :valid? => true)
       Child.search(search).map(&:name).should =~ ["timothy cochran"]
     end
   end
@@ -130,13 +130,14 @@ describe Child do
     end
   
   describe "validation of custom fields" do
-    it "should fail to validate if all fields are nil" do      
+    it "should fail to validate if all fields are nil" do
       child = Child.new
       FormSection.stub!(:all_enabled_child_fields).and_return [Field.new(:type => 'numeric_field', :name => 'height', :display_name => "height")]
       child.should_not be_valid
       child.errors[:validate_has_at_least_one_field_value].should == ["Please fill in at least one field or upload a file"]
     end
-    it "should fail to validate if all fields on child record are the default values" do      
+    
+    it "should fail to validate if all fields on child record are the default values" do
       child = Child.new({:height=>"",:reunite_with_mother=>""})
       FormSection.stub!(:all_enabled_child_fields).and_return [
                 Field.new(:type => Field::NUMERIC_FIELD, :name => 'height'),
@@ -145,17 +146,17 @@ describe Child do
       child.should_not be_valid
       child.errors[:validate_has_at_least_one_field_value].should == ["Please fill in at least one field or upload a file"]
     end
-    
+
     it "should validate numeric types" do
       fields = [{:type => 'numeric_field', :name => 'height', :display_name => "height"}]
       child = Child.new
       child[:height] = "very tall"
       FormSection.stub!(:all_enabled_child_fields).and_return(fields)
-      
+
       child.should_not be_valid
       child.errors.on(:height).should == ["height must be a valid number"]
     end
-    
+
     it "should validate multiple numeric types" do
       fields = [
         {:type => 'numeric_field', :name => 'height', :display_name => "height"},
@@ -164,7 +165,7 @@ describe Child do
       child[:height] = "very tall"
       child[:new_age] = "very old"
       FormSection.stub!(:all_enabled_child_fields).and_return(fields)
-      
+
       child.should_not be_valid
       child.errors.on(:height).should == ["height must be a valid number"]
       child.errors.on(:new_age).should == ["new age must be a valid number"]
@@ -213,7 +214,7 @@ describe Child do
           [Field.new(:type => Field::NUMERIC_FIELD, :name => "height")])
       Child.new(:height => "10.2").should be_valid
     end
-    
+
     it "should disallow file formats that are not photo formats" do
       child = Child.new
 
@@ -223,14 +224,14 @@ describe Child do
       child.photo = uploadable_photo_bmp
       child.save.should == false
     end
-    
+
     it "should save file based on content type" do
       child = Child.new
       photo = uploadble_jpg_photo_without_file_extension
       child.photo = photo
       child.save.should == true
     end
-    
+
     it "should disallow file formats that are not supported audio formats" do
       child = Child.new
 
@@ -239,22 +240,22 @@ describe Child do
 
       child.audio = uploadable_audio_amr
       child.save.should == true
-      
+
       child.audio = uploadable_audio_mp3
       child.save.should == true
-      
+
       child.audio = uploadable_audio_wav
       child.save.should == false
-      
+
       child.audio = uploadable_audio_ogg
       child.save.should == false
-      
+
     end
-    
+
     it "should allow blank age" do
       child = Child.new({:age => "", :another_field=>"blah"})
       child.save.should == true
-      
+
       child = Child.new :foo=>"bar"
       child.save.should == true
     end
@@ -364,12 +365,12 @@ describe Child do
       current_time = Time.parse("Jan 20 2010 17:10:32")
       Time.stub!(:now).and_return current_time
     end
-    
+
     context "with no photos" do
       it "should have an empty set" do
         Child.new.photos.should be_empty
       end
-      
+
       it "should not have a primary photo" do
         Child.new.primary_photo.should be_nil
       end
@@ -391,12 +392,12 @@ describe Child do
       it "should have corrent number of photos after creation" do
         child.photos.size.should eql 2
       end
-      
+
       it "should return the first photo as a primary photo" do
         child.primary_photo.should match_photo uploadable_photo_jeff
       end
     end
-    
+
     context "when updating a photo" do
       let(:child) {Child.create('photo' => uploadable_photo, 'last_known_location' => 'London')}  
       before(:each) do
@@ -404,19 +405,19 @@ describe Child do
         Time.stub!(:now).and_return updated_at_time
         child.update_attributes :photo => uploadable_photo_jeff
       end
-      
+
       it "should become the primary photo" do
         child.primary_photo.should match_photo uploadable_photo_jeff
       end
     end
-    
+
     context "when rotating an existing photo" do
       let(:child) {Child.create('photo' => uploadable_photo, 'last_known_location' => 'London')}  
       before(:each) do
         updated_at_time = Time.parse("Feb 20 2010 12:04:32")
         Time.stub!(:now).and_return updated_at_time
       end
-      
+
       it "should become the primary photo" do
         existing_photo = child.primary_photo
           child.rotate_photo(180)
@@ -425,7 +426,7 @@ describe Child do
         #TODO: should be a better way to check rotation other than stubbing Minimagic ?
         child.primary_photo.should_not match_photo existing_photo
       end
-      
+
       it "should delete the original orientation" do
         existing_photo = child.primary_photo
         child.rotate_photo(180)
@@ -568,7 +569,7 @@ describe Child do
 
   end
 
-  describe "history log" do    
+  describe "history log" do
     before do
       form_section = FormSection.new :unique_id => "basic_details"
       form_section.add_text_field("last_known_location")
@@ -822,21 +823,17 @@ describe Child do
       Child.all.find{|c| c.id == child.id}.photo.should be_nil
     end
   end
-  
+
   describe ".audio" do
     it "should return nil if the record has no audio" do
       child = create_child "Bob McBobberson"
       child.audio.should be_nil
     end
   end
- 
+
   describe "primary_photo =" do
     before :each do
-      @photo1 = uploadable_photo("features/resources/jorge.jpg")
-      @photo2 = uploadable_photo("features/resources/jeff.png")
-      @child = Child.new("name" => "Tom")
-      @child.photo= { 0 => @photo1, 1 => @photo2 }
-      @child.save
+      create_child_with_two_photos
     end
 
     it "should update the primary photo selection" do
@@ -857,10 +854,39 @@ describe Child do
     end
   end
 
+  describe "delete_photo" do
+    before :each do
+      create_child_with_two_photos
+    end
+
+    it "should delete the photo with that photo id" do
+      @child.photos.should have(2).photos
+      @child.delete_photo(@child.photos.second.name)
+      @child.photos.should have(1).photo
+    end
+
+    context "deleting the current primary photo" do
+      it "should make the next photo the new primary photo" do
+        @child.primary_photo.should match_photo(@photo1)
+        @child.photos.first.should match_photo(@photo1)
+        @child.photos.second.should match_photo(@photo2)
+        @child.delete_photo(@child.photos.first.name)
+        @child.primary_photo.should match_photo(@photo2)
+      end
+    end
+  end
+
   private
-  
+
   def create_child(name)
     Child.create("name" => name, "last_known_location" => "new york")
-  end 
+  end
 
+  def create_child_with_two_photos
+    @photo1 = uploadable_photo("features/resources/jorge.jpg")
+    @photo2 = uploadable_photo("features/resources/tom.jpg")
+    @child = Child.new("name" => "Tom")
+    @child.photo= { 0 => @photo1, 1 => @photo2 }
+    @child.save
+  end
 end
