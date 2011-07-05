@@ -7,7 +7,6 @@ class Child < CouchRestRails::Document
   Sunspot::Adapters::InstanceAdapter.register(DocumentInstanceAccessor, Child)
 
   before_save :initialize_history, :if => :new?
-  # before_save :update_photo_keys
   before_save :update_history, :unless => :new?
 
   property :age
@@ -32,6 +31,12 @@ class Child < CouchRestRails::Document
   validates_fields_of_type Field::DATE_FIELD
   validates_with_method :validate_has_at_least_one_field_value
 	validates_with_method :created_at, :method => :validate_created_at
+
+  def initialize *args
+    self['photo_keys'] ||= []
+    self['current_photo_key'] ||= []
+    super *args
+  end
 
   def self.build_solar_schema
     fields = ["unique_identifier"]  + Field.all_text_names
@@ -138,7 +143,6 @@ class Child < CouchRestRails::Document
     # attachment = FileAttachment.from_uploadable_file(image.to_blob, "photo-#{existing_photo.name.hash}")
 
     self['photo_keys'].delete(attachment.name)
-    @photo_keys = [attachment.name]
     delete_attachment(existing_photo.name)
     attach(attachment)
   end
@@ -152,7 +156,6 @@ class Child < CouchRestRails::Document
 
   def delete_photo(photo_key_to_delete)
     self['photo_keys'].delete(photo_key_to_delete)
-    @photo_keys.delete(photo_key_to_delete)
     if photo_key_to_delete == self['current_photo_key']
       self['current_photo_key'] = self['photo_keys'].first
     end
@@ -167,14 +170,14 @@ class Child < CouchRestRails::Document
     end
 
     @photos = []
-    @photo_keys = new_photos.values.select {|photo| photo.respond_to? :content_type}.collect do |photo|
+    new_photo_keys = new_photos.values.select {|photo| photo.respond_to? :content_type}.collect do |photo|
       @photos <<  photo
       attachment = FileAttachment.from_uploadable_file(photo, "photo-#{photo.path.hash}")
       attach(attachment)
       attachment.name
     end
-    self['photo_keys'].concat(@photo_keys).uniq!
-    self['current_photo_key'] ||= @photo_keys.first
+    self['photo_keys'].concat(new_photo_keys).uniq!
+    self['current_photo_key'] = self['photo_keys'].first if self['current_photo_key'].empty?
   end
 
   def photos
@@ -314,13 +317,6 @@ class Child < CouchRestRails::Document
     data = read_attachment key
     content_type = self['_attachments'][key]['content_type']
     FileAttachment.new key, content_type, data
-  end
-
-  def update_photo_keys
-    @photo_keys ||= []
-    self['photo_keys'] ||= []
-    self['photo_keys'].concat(@photo_keys).uniq!
-    self['current_photo_key'] ||= @photo_keys.first || self['photo_keys'].first
   end
 
   def attach(attachment)
