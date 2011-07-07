@@ -34,7 +34,8 @@ class Child < CouchRestRails::Document
 
   def initialize *args
     self['photo_keys'] ||= []
-    self['current_photo_key'] ||= []
+    self['current_photo_key'] = nil
+    self['histories'] = []
     super *args
   end
 
@@ -140,10 +141,11 @@ class Child < CouchRestRails::Document
     image.rotate(angle)
 
     attachment = FileAttachment.new(existing_photo.name, existing_photo.content_type, image.to_blob)
-    # attachment = FileAttachment.from_uploadable_file(image.to_blob, "photo-#{existing_photo.name.hash}")
 
-    self['photo_keys'].delete(attachment.name)
+    photo_key_index = self['photo_keys'].find_index(existing_photo.name)
+    self['photo_keys'].delete_at(photo_key_index)
     delete_attachment(existing_photo.name)
+    self['photo_keys'].insert(photo_key_index, existing_photo.name)
     attach(attachment)
   end
 
@@ -177,7 +179,7 @@ class Child < CouchRestRails::Document
       attachment.name
     end
     self['photo_keys'].concat(new_photo_keys).uniq!
-    self['current_photo_key'] = self['photo_keys'].first if self['current_photo_key'].empty?
+    self['current_photo_key'] = self['photo_keys'].first if self['current_photo_key'].blank?
   end
 
   def photos
@@ -199,7 +201,7 @@ class Child < CouchRestRails::Document
 
   def primary_photo
     key = self['current_photo_key']
-    key ? attachment(key) : nil
+    key.blank? ? nil: attachment(key)
   end
 
   def primary_photo_id
@@ -281,7 +283,7 @@ class Child < CouchRestRails::Document
     Time.now.getutc.strftime("%Y-%m-%d %H:%M:%SUTC")
   end
 
-  def changes_for(field_names)
+  def changes_for(field_names) 
     field_names.inject({}) do |changes, field_name|
       changes.merge(field_name => {
         'from' => @from_child[field_name],
@@ -326,7 +328,7 @@ class Child < CouchRestRails::Document
   end
 
   def deprecated_fields
-    system_fields = ["created_at","posted_at", "posted_from", "_rev", "_id", "created_by", "couchrest-type", "histories", "unique_identifier"]
+    system_fields = ["created_at","posted_at", "posted_from", "_rev", "_id", "created_by", "couchrest-type", "histories", "unique_identifier", "photo_keys", "current_photo_key"]
     existing_fields = system_fields + FormSection.all_enabled_child_fields.map {|x| x.name}
     self.reject {|k,v| existing_fields.include? k}
   end
