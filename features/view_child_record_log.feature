@@ -21,12 +21,12 @@ Feature:
 
     Then I should see "2010-07-19 17:05:00UTC Record created by harry"
 
-  Scenario:  I log in as a different user, upload a new photo and view the record log
+  Scenario:  I log in as a different user, upload a photo and view the record log
 
     Given the date/time is "July 19 2010 13:05:32"
     And the following children exist in the system:
-    | name       | dob_or_age | gender | birthplace |
-    | Jorge Just | 27  | Male   | Haiti               |
+    | name       | dob_or_age | gender | birthplace | photo_path |
+    | Jorge Just | 27  | Male   | Haiti             |            |
     And the local date/time is "Sept 29 2010 17:59:33" and UTC time is "Sept 29 2010 21:59:33UTC"
     And "Mary" is logged in
     And I am on the children listing page
@@ -36,18 +36,9 @@ Feature:
     And I press "Save"
     And I follow "View the change log"
 
-    Then I should see "2010-09-29 21:59:33UTC Photo changed from"
-    And I should see the thumbnail of "Jorge Just" with timestamp "2010-07-19T130532"
+    Then I should see "2010-09-29 21:59:33UTC Photo added"
     And I should see the thumbnail of "Jorge Just" with timestamp "2010-09-29T175933"
     And I should see "by mary"
-
-    When I follow photo with timestamp "2010-07-19T130532"
-
-    Then I should see the photo corresponding to "features/resources/jorge.jpg"
-
-    When I am on the children listing page
-    And I follow "Jorge Just"
-    And I follow "View the change log"
 
     When I follow photo with timestamp "2010-09-29T175933"
 

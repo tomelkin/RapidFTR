@@ -7,6 +7,7 @@ class Child < CouchRestRails::Document
   Sunspot::Adapters::InstanceAdapter.register(DocumentInstanceAccessor, Child)
 
   before_save :initialize_history, :if => :new?
+  before_save :update_photo_keys
   before_save :update_history, :unless => :new?
 
   property :age
@@ -172,15 +173,19 @@ class Child < CouchRestRails::Document
     end
 
     @photos = []
-    new_photo_keys = new_photos.values.select {|photo| photo.respond_to? :content_type}.collect do |photo|
+    @new_photo_keys = new_photos.values.select {|photo| photo.respond_to? :content_type}.collect do |photo|
       @photos <<  photo
       attachment = FileAttachment.from_uploadable_file(photo, "photo-#{photo.path.hash}")
       attach(attachment)
       attachment.name
     end
-    self['photo_keys'].concat(new_photo_keys).uniq!
+  end
+
+  def update_photo_keys
+    self['photo_keys'].concat(@new_photo_keys).uniq! if @new_photo_keys
     self['current_photo_key'] = self['photo_keys'].first if self['current_photo_key'].blank?
   end
+
 
   def photos
     return [] if self['photo_keys'].blank?
@@ -283,7 +288,7 @@ class Child < CouchRestRails::Document
     Time.now.getutc.strftime("%Y-%m-%d %H:%M:%SUTC")
   end
 
-  def changes_for(field_names) 
+  def changes_for(field_names)
     field_names.inject({}) do |changes, field_name|
       changes.merge(field_name => {
         'from' => @from_child[field_name],
