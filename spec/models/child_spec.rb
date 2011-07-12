@@ -855,6 +855,7 @@ describe Child do
     it "should delete the photo with that photo id" do
       @child.photos.should have(2).photos
       @child.delete_photo(@child.photos.second.name)
+      @child.save
       @child.photos.should have(1).photo
     end
 

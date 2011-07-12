@@ -13,6 +13,7 @@ class ChildMediaController < ApplicationController
 
   def delete_photo
     @child.delete_photo(params[:id])
+    @child.save
     head :ok
   end
 

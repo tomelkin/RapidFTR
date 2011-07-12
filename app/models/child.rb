@@ -15,7 +15,7 @@ class Child < CouchRestRails::Document
   property :nickname
   property :unique_identifier
   property :flag, :cast_as => :boolean
-  
+
   view_by :name,
           :map => "function(doc) {
               if (doc['couchrest-type'] == 'Child')
@@ -47,7 +47,6 @@ class Child < CouchRestRails::Document
       text *fields
     end
   end
- 
 
   def validate_has_at_least_one_field_value
     return true if FormSection.all_enabled_child_fields.any? { |field| is_filled_in? field }
@@ -162,7 +161,6 @@ class Child < CouchRestRails::Document
     if photo_key_to_delete == self['current_photo_key']
       self['current_photo_key'] = self['photo_keys'].first
     end
-    save
   end
 
   def photo=(new_photos)
@@ -182,7 +180,10 @@ class Child < CouchRestRails::Document
   end
 
   def update_photo_keys
-    self['photo_keys'].concat(@new_photo_keys).uniq! if @new_photo_keys
+    if @new_photo_keys
+      self['photo_keys'].concat(@new_photo_keys).uniq!
+      @new_photo_keys = nil
+    end
     self['current_photo_key'] = self['photo_keys'].first if self['current_photo_key'].blank?
   end
 

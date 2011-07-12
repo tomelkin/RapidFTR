@@ -134,6 +134,7 @@ describe ChildMediaController do
       given_a_child.with_id("1")
 
       @child.should_receive(:delete_photo).with("photo-to-delete")
+      @child.should_receive(:save)
 
       delete :delete_photo, :child_id => "1", :id => "photo-to-delete"
 
